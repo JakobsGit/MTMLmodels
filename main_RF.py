@@ -41,7 +41,7 @@ default_parameters_RF = [default_num_trees, default_max_depth]
 
 
 number_of_folds = 15
-# define list of delta_t, where delta_t return
+# define list of delta_t, where delta_t return after delta_t trading days
 nlist = [20,10,5,3,2,1]
 
 #define parameter & loss results dataframe  
