@@ -145,22 +145,25 @@ def deletedividendentries(dataset):
     dataset : Cleaned DataFrame
 
     """
+    
     limitnumber = np.unique(dataset['Stock']).shape[0]*0.2
     for dateindex in np.unique(dataset['Date']):
         if dataset[dataset['Date']==dateindex].shape[0] < limitnumber:
+            print(dateindex)
             #print(dateindex)
             #print(dataset[dataset['Date']==dateindex].shape[0])
             rowindex = dataset.index[dataset['Date']==dateindex]
-            if float(dataset.loc[rowindex]['Close']) == float(dataset.loc[rowindex-1]['Close']):
-                #print(dataset.loc[rowindex])
-                #print(dataset.loc[rowindex]['Dividends'])
-                #print(dataset.loc[rowindex-1])
-                dataset = dataset.drop(rowindex, axis=0)
-    dataset.reset_index(level=0, inplace=True)
-    dataset = dataset.drop(columns='index')
+            for i in rowindex:
+              print(i)
+              if float(dataset.loc[i]['Close']) == float(dataset.loc[i-1]['Close']):
+                  #print(dataset.loc[rowindex])
+                  #print(dataset.loc[rowindex]['Dividends'])
+                  #print(dataset.loc[rowindex-1])
+                  dataset = dataset.drop(i, axis=0)
+                  dataset.reset_index(level=0, inplace=True)
+                  dataset = dataset.drop(columns='index')
     return dataset
-
-
+    
 
 def calculateXdayReturn(onedayreturnfactor,timesteps, day,n):
     r"""
@@ -301,33 +304,33 @@ def standardize_input(y_train_df, dataset, X_train, X_val, X_test, timesteps):
     X_test: standardized X_test
     
     """
-
-  startdate = np.min(y_train_df.Date)
-  alldates = np.unique(dataset.Date).astype('datetime64[s]')
-  outputindexstart = int(np.where(alldates == startdate)[0])
-
-  onlyinputdata = dataset[(dataset['Date']< startdate) & (dataset['Date'] >= alldates[outputindexstart-timesteps])] 
-
-
-  onlyinputdata = onlyinputdata.drop(columns=['Open', 	'High', 	'Low', 'Volume', 'Dividends', 'Stock Splits'])
-  
-  trainingdatapoints = pd.concat([onlyinputdata, y_train_df])
-  
-  trainingdatareturns = trainingdatapoints['1dayReturn']
-  
-  averagereturn = np.average(trainingdatareturns)
-  stddevreturn = np.std(trainingdatareturns)  
-  
-  X_train[:,:] = X_train[:,:] - averagereturn
-  X_train[:,:] = X_train[:,:]/stddevreturn
-
-  X_val[:,:] = X_val[:,:] - averagereturn
-  X_val[:,:] = X_val[:,:]/stddevreturn
-
-  X_test[:,:] = X_test[:,:] - averagereturn
-  X_test[:,:] = X_test[:,:]/stddevreturn    
-
-  return X_train, X_val,  X_test
+    
+    startdate = np.min(y_train_df.Date)
+    alldates = np.unique(dataset.Date).astype('datetime64[s]')
+    outputindexstart = int(np.where(alldates == startdate)[0])
+    
+    onlyinputdata = dataset[(dataset['Date']< startdate) & (dataset['Date'] >= alldates[outputindexstart-timesteps])] 
+    
+    
+    onlyinputdata = onlyinputdata.drop(columns=['Open', 	'High', 	'Low', 'Volume', 'Dividends', 'Stock Splits'])
+    
+    trainingdatapoints = pd.concat([onlyinputdata, y_train_df])
+    
+    trainingdatareturns = trainingdatapoints['1dayReturn']
+    
+    averagereturn = np.average(trainingdatareturns)
+    stddevreturn = np.std(trainingdatareturns)  
+    
+    X_train[:,:] = X_train[:,:] - averagereturn
+    X_train[:,:] = X_train[:,:]/stddevreturn
+    
+    X_val[:,:] = X_val[:,:] - averagereturn
+    X_val[:,:] = X_val[:,:]/stddevreturn
+    
+    X_test[:,:] = X_test[:,:] - averagereturn
+    X_test[:,:] = X_test[:,:]/stddevreturn    
+    
+    return X_train, X_val,  X_test
  
 
 
