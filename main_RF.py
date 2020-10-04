@@ -22,32 +22,13 @@ import math
 import h2o
 h2o.init()
 
-
+randomseed = 1
 
 #####################################################
 # Input / Parameter Definition
 #####################################################
 
-dim_num_trees = Integer(low=100, high=2000, name='ntrees')
-dim_max_depth = Integer(low=5, high=20, name='max_depth')
 
-dimensions_RF = [dim_num_trees,
-              dim_max_depth]
-
-default_num_trees = 100
-default_max_depth = 5
-
-default_parameters_RF = [default_num_trees, default_max_depth]
-
-
-number_of_folds = 15
-# define list of delta_t, where delta_t return after delta_t trading days
-nlist = [20,10,5,3,2,1]
-
-#define parameter & loss results dataframe  
-zeroph = np.zeros(len(nlist))
-parameter_dict = {'logloss':zeroph, 'ntrees':zeroph, 'max_depth':zeroph}
-parameter_df_RF = pd.DataFrame(parameter_dict, columns = ['logloss','ntrees','max_depth'], index = nlist) 
 
 
 # select approach and timesteps
@@ -78,13 +59,35 @@ parameter_df_RF = pd.DataFrame(parameter_dict, columns = ['logloss','ntrees','ma
 approach = 31
 timesteps = 240
 
+# define parameter space
+dim_num_trees = Integer(low=100, high=2000, name='ntrees')
+dim_max_depth = Integer(low=5, high=20, name='max_depth')
 
-# get s&p 500 data
-stockdata = getsp500data(numberofstocks=6,startdate='2004-12-31', enddate='2019-12-31')  
+dimensions_RF = [dim_num_trees,
+              dim_max_depth]
+
+# define default parameters to start the hyperparameter optimization
+default_num_trees = 100
+default_max_depth = 5
+
+default_parameters_RF = [default_num_trees, default_max_depth]
+
+number_of_folds = 15
+
+# define list of delta_t, where delta_t return after delta_t trading days
+nlist = [20,10,5,3,2,1]
+
+#define parameter & loss results dataframe  
+zeroph = np.zeros(len(nlist))
+parameter_dict = {'logloss':zeroph, 'ntrees':zeroph, 'max_depth':zeroph}
+parameter_df_RF = pd.DataFrame(parameter_dict, columns = ['logloss','ntrees','max_depth'], index = nlist) 
+
+# get s&p 500 data with highest trade volume from yahoo finance 
+stockdata = getsp500data(numberofstocks=50,startdate='2004-12-31', enddate='2019-12-31')  
 stockfullhistcheck(stockdata)
 replacenans(stockdata)
 
-
+# convert input data to h2o frames
 def createh2oframes(X, y):
 
     indexvec = np.arange(0,len(y))
@@ -100,7 +103,7 @@ def createh2oframes(X, y):
     
     return hf
 
-
+# run time series validation, returing the average validation loss (out of sample validation)
 def timeseriesCV_RF(dataset,X,y,y_df,fold_size, numberofdays, timesteps,ntrees,max_depth, number_of_folds, approach):
   loss_list = []
   foldlimit = int(number_of_folds*0.6)
@@ -115,7 +118,7 @@ def timeseriesCV_RF(dataset,X,y,y_df,fold_size, numberofdays, timesteps,ntrees,m
     ydata= "y"
     xdata= hf_train.columns[:-1]
 
-    rf_fit = H2ORandomForestEstimator(model_id='rf_fit', ntrees=int(ntrees),max_depth=int(max_depth), seed=1, balance_classes=True)
+    rf_fit = H2ORandomForestEstimator(model_id='rf_fit', ntrees=int(ntrees),max_depth=int(max_depth), seed=randomseed, balance_classes=True)
     rf_fit.train(x=xdata, y=ydata, training_frame=hf_train, validation_frame = hf_val)
     
     loss = rf_fit.logloss(valid=True)
@@ -127,7 +130,7 @@ def timeseriesCV_RF(dataset,X,y,y_df,fold_size, numberofdays, timesteps,ntrees,m
 
   return av_loss
 
-
+# optimization function for the hyperparameter optimization
 @use_named_args(dimensions=dimensions_RF)
 def fitness_RF(ntrees,
             max_depth):
@@ -144,7 +147,7 @@ def fitness_RF(ntrees,
 
     return av_loss
 
-
+# function to save the best parameter set for each delta_t
 def saveoptresults(search_result, parameter_df, forecastdays, approach):
     
     ntrees = search_result.x[0]
@@ -163,7 +166,7 @@ def saveoptresults(search_result, parameter_df, forecastdays, approach):
     dump(search_result, optimizationdirect)
     return parameter_df
 
-
+# train model with best hyperparameters and return the predictions for the test data (out of sample)
 def savetestresults(dataset, X, y, y_df,approach, fold_size, number_of_folds, forecastdays, numberofdays, timesteps, ntrees, max_depth):
     
     firstfold = int(number_of_folds*0.6)
@@ -181,7 +184,7 @@ def savetestresults(dataset, X, y, y_df,approach, fold_size, number_of_folds, fo
       ydata= "y"
       xdata= hf_train.columns[:-1]
     
-      rf_fit = H2ORandomForestEstimator(model_id='rf_fit', ntrees=int(ntrees),max_depth=int(max_depth), seed=1, balance_classes=True)
+      rf_fit = H2ORandomForestEstimator(model_id='rf_fit', ntrees=int(ntrees),max_depth=int(max_depth), seed=randomseed, balance_classes=True)
       rf_fit.train(x=xdata, y=ydata, training_frame=hf_train, validation_frame=hf_val)
       
       pred = rf_fit.predict(hf_test)
@@ -214,6 +217,7 @@ for forecastdays in nlist:
   print("performance forecasted for ", forecastdays, "days")
   print(" ")
   
+  #data preprocessing
   dataset = createreturncolumn(stockdata,forecastdays,approach)
   dataset = createtargetcolumn(dataset,approach)
   dataset = deletedividendentries(dataset)
@@ -223,6 +227,7 @@ for forecastdays in nlist:
   numberofdays = np.unique(y_df.Date).shape[0]
   fold_size = int(numberofdays/number_of_folds)
    
+  # bayesian optimization
   search_result = gp_minimize(func=fitness_RF,
                               dimensions=dimensions_RF,
                               acq_func='EI', # Expected Improvement.
