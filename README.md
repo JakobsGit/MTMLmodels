@@ -1,4 +1,4 @@
-##Master's Thesis Code Repository
+## Master's Thesis Code Repository
 
 
 **get_data_functions.py**
