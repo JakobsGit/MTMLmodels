@@ -397,10 +397,7 @@ def fitness(learning_rate,
     print()
     print("Average Loss: ", (av_val_loss))
     print()
-    # NOTE: Scikit-optimize does minimization so it tries to
-    # find a set of hyper-parameters with the LOWEST fitness-value.
-    # Because we are interested in the HIGHEST classification
-    # accuracy, we need to negate this number so it can be minimized.
+
     return av_val_loss
     
 
