@@ -231,7 +231,7 @@ for forecastdays in nlist:
   search_result = gp_minimize(func=fitness_RF,
                               dimensions=dimensions_RF,
                               acq_func='EI', # Expected Improvement.
-                              n_calls=11,
+                              n_calls=100,
                               x0=default_parameters_RF)
  
   parameter_df_RF = saveoptresults(search_result, parameter_df_RF, forecastdays, approach)

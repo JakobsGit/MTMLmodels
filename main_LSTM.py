@@ -427,7 +427,7 @@ for forecastdays in nlist:
   search_result = gp_minimize(func=fitness,
                               dimensions=dimensions,
                               acq_func='EI', # Expected Improvement.
-                              n_calls=11,
+                              n_calls=100,
                               x0=default_parameters)
   
   
