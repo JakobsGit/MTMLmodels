@@ -20,7 +20,7 @@
 	Model: features, target and model similiar to 
 		*C. Krauss et al. European Journal of Operational Research 259 (2017) 689–702. Deep neural networks, gradient-boosted trees, random forests: Statistical arbitrage on the S&P 500
 	
-main_LSTM.py 
+**main_LSTM.py**
 
 * contains 2 different models: than can be chosen by the approach variable: 240(model similiar to **), 63 (model similiar to ***)
 * contains functions that divide the prepared data set into training, validation and test sets and that run "cross validation for time series"
