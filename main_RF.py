@@ -212,7 +212,6 @@ def savetestresults(dataset, X, y, y_df,approach, fold_size, number_of_folds, fo
 # HYPERPARAMETER OPTIMIZATION
 ##########################################################
 
-
 for forecastdays in nlist:
   print("performance forecasted for ", forecastdays, "days")
   print(" ")
@@ -227,14 +226,16 @@ for forecastdays in nlist:
   numberofdays = np.unique(y_df.Date).shape[0]
   fold_size = int(numberofdays/number_of_folds)
    
-  # bayesian optimization
+  # Bayesian optimization
   search_result = gp_minimize(func=fitness_RF,
                               dimensions=dimensions_RF,
                               acq_func='EI', # Expected Improvement.
                               n_calls=100,
                               x0=default_parameters_RF)
- 
+  
+  # store best parameters and optimization results
   parameter_df_RF = saveoptresults(search_result, parameter_df_RF, forecastdays, approach)
 
+  # store predictions for test data
   test_df = savetestresults(dataset, X, y, y_df,approach, fold_size, number_of_folds, forecastdays, numberofdays, timesteps, ntrees=search_result.x[0], max_depth=search_result.x[1])
 

@@ -108,7 +108,7 @@ default_parameters = [lr, layers, nodes, batch, dropout]
 
 number_of_folds = 15
 
-# list of delta_t that indicates target return after delta_t trading days
+# list of delta_t that indicates prediction of target return after delta_t trading days
 nlist = [20,10,5,3,2,1]
 
 #define parameter & loss results dataframe  
@@ -135,7 +135,6 @@ def create_lstm_model(timesteps, learning_rate,num_hidden_layers,
     
     model = Sequential()
     if approach == 63:
-         #model.add(Bidirectional(LSTM(units = num_lstm_nodes, return_sequences = False, input_shape = (timesteps, 1))))
         if num_hidden_layers == 1:
           model.add(Bidirectional(LSTM(units = num_lstm_nodes, return_sequences = False, input_shape = (timesteps, 1))))
         elif num_hidden_layers == 2:
@@ -150,7 +149,6 @@ def create_lstm_model(timesteps, learning_rate,num_hidden_layers,
           model.add(Bidirectional(LSTM(units = num_lstm_nodes, return_sequences = False)))
 
     else:
-        #model.add(LSTM(units = num_lstm_nodes, return_sequences = False, input_shape = (timesteps, 1)))
         if num_hidden_layers == 1:
           model.add(LSTM(units = num_lstm_nodes, return_sequences = False, input_shape = (timesteps, 1)))
         elif num_hidden_layers == 2:
@@ -231,10 +229,9 @@ def timeseriesCV(dataset, X,y,y_df,fold_size, numberofdays, timesteps, learning_
                                        verbose=0, 
                                        save_best_only=True)
 
-    # Use Keras to train the model.
     history = model.fit(x=X_train,
                         y=y_train,
-                        epochs=2,
+                        epochs=30,
                         batch_size=2**num_batch,
                         validation_data=(X_val,y_val),
                         verbose=0,
@@ -298,8 +295,7 @@ def savetestresults(dataset, X, y, y_df,approach, fold_size, number_of_folds, fo
     firstfold = int(number_of_folds*0.6)
     foldlimit = firstfold+3
 
-  testfolds = range(firstfold,foldlimit)#range(int(number_of_folds*0.8-2),number_of_folds-2)
-
+  testfolds = range(firstfold,foldlimit)
   for foldindex in testfolds:
     X_train, X_val, X_test, y_train, y_val, y_test, y_train_df, y_val_df, y_test_df = createfolds(dataset, X, y, y_df, fold_size, foldindex, numberofdays, timesteps, approach)
     print('X', X_test.shape)
@@ -333,7 +329,7 @@ def savetestresults(dataset, X, y, y_df,approach, fold_size, number_of_folds, fo
         es = EarlyStopping(monitor='val_mean_squared_error', 
                             mode='min', 
                             verbose=1, 
-                            patience=20)
+                            patience=10)
         
         checkpointer = ModelCheckpoint(filepath="weights.hdf5",
                                         monitor='val_mean_squared_error',
@@ -341,10 +337,9 @@ def savetestresults(dataset, X, y, y_df,approach, fold_size, number_of_folds, fo
                                         verbose=1, 
                                         save_best_only=True)
 
-    # Use Keras to train the model.
     history = model.fit(x=X_train,
                         y=y_train,
-                        epochs=2,#num_epochs,
+                        epochs=30,
                         batch_size=2**num_batch,
                         validation_data=(X_val,y_val),
                         verbose=0,
@@ -390,8 +385,7 @@ def fitness(learning_rate,
     print('dropout:', dropout_rate)
     print()
     
-    # Create the neural network with these hyper-parameters + run time series validation 
-    
+    # Create the neural network with a set of hyper-parameters + run time series validation     
     av_val_loss = timeseriesCV(dataset, X,y,y_df,fold_size, numberofdays, timesteps, learning_rate,num_hidden_layers, num_lstm_nodes, num_batch, dropout_rate, number_of_folds, approach)
     
     print()
@@ -419,16 +413,16 @@ for forecastdays in nlist:
   numberofdays = np.unique(y_df.Date).shape[0]
   fold_size = int(numberofdays/number_of_folds)
   
-  
-  # bayesian optimization
+  # Bayesian optimization
   search_result = gp_minimize(func=fitness,
                               dimensions=dimensions,
                               acq_func='EI', # Expected Improvement.
                               n_calls=100,
                               x0=default_parameters)
   
-  
+  # store best parameters and optimization results
   parameter_df = saveoptresults(search_result, parameter_df, forecastdays, approach)
   
+  # store predictions for test data
   test_df = savetestresults(dataset, X, y, y_df,approach, fold_size, number_of_folds, forecastdays, numberofdays, timesteps, search_result)
 
